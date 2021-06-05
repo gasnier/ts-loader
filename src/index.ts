@@ -42,7 +42,6 @@ function loader(this: webpack.LoaderContext<LoaderOptions>, contents: string) {
     return;
   }
   const instance = instanceOrError.instance!;
-  buildSolutionReferences(instance, this);
   successLoader(this, contents, callback, instance);
 }
 
@@ -53,19 +52,20 @@ function successLoader(
   instance: TSInstance
 ) {
   initializeInstance(loaderContext, instance);
+  buildSolutionReferences(instance, loaderContext);
   reportTranspileErrors(instance, loaderContext);
   const rawFilePath = path.normalize(loaderContext.resourcePath);
 
   const filePath =
     instance.loaderOptions.appendTsSuffixTo.length > 0 ||
-    instance.loaderOptions.appendTsxSuffixTo.length > 0
+      instance.loaderOptions.appendTsxSuffixTo.length > 0
       ? appendSuffixesIfMatch(
-          {
-            '.ts': instance.loaderOptions.appendTsSuffixTo,
-            '.tsx': instance.loaderOptions.appendTsxSuffixTo,
-          },
-          rawFilePath
-        )
+        {
+          '.ts': instance.loaderOptions.appendTsSuffixTo,
+          '.tsx': instance.loaderOptions.appendTsxSuffixTo,
+        },
+        rawFilePath
+      )
       : rawFilePath;
 
   const fileVersion = updateFileInCache(
@@ -106,10 +106,10 @@ function makeSourceMapAndFinish(
       ? ' The most common cause for this is having errors when building referenced projects.'
       : !instance.loaderOptions.allowTsInNodeModules &&
         filePath.indexOf('node_modules') !== -1
-      ? ' By default, ts-loader will not compile .ts files in node_modules.\n' +
+        ? ' By default, ts-loader will not compile .ts files in node_modules.\n' +
         'You should not need to recompile .ts files there, but if you really want to, use the allowTsInNodeModules option.\n' +
         'See: https://github.com/Microsoft/TypeScript/issues/12358'
-      : '';
+        : '';
 
     callback(
       new Error(
@@ -427,7 +427,7 @@ function getEmit(
       // the real dependency that webpack should watch is the JS output file.
       addDependency(
         getInputFileNameFromOutput(instance, path.resolve(resolvedFileName)) ||
-          originalFileName
+        originalFileName
       );
     }
   }
@@ -440,16 +440,16 @@ function getEmit(
       '@' +
       (isReferencedFile(instance, defFilePath)
         ? instance
-            .solutionBuilderHost!.getInputFileStamp(defFilePath)
-            .toString()
+          .solutionBuilderHost!.getInputFileStamp(defFilePath)
+          .toString()
         : (
-            instance.files.get(instance.filePathKeyMapper(defFilePath)) ||
-            instance.otherFiles.get(
-              instance.filePathKeyMapper(defFilePath)
-            ) || {
-              version: '?',
-            }
-          ).version)
+          instance.files.get(instance.filePathKeyMapper(defFilePath)) ||
+          instance.otherFiles.get(
+            instance.filePathKeyMapper(defFilePath)
+          ) || {
+            version: '?',
+          }
+        ).version)
   );
 
   return getOutputAndSourceMapFromOutputFiles(outputFiles);
@@ -659,5 +659,5 @@ export = loader;
 // eslint-disable-next-line @typescript-eslint/no-namespace
 namespace loader {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  export interface Options extends LoaderOptions {}
+  export interface Options extends LoaderOptions { }
 }

@@ -102,8 +102,8 @@ function createFilePathKeyMapper(
       const filePathKey = pathResolve(filePath);
       cachedPath = fileNameLowerCaseRegExp.test(filePathKey)
         ? (filePathKey.replace(fileNameLowerCaseRegExp, ch =>
-            ch.toLowerCase()
-          ) as FilePathKey)
+          ch.toLowerCase()
+        ) as FilePathKey)
         : filePathKey;
       filePathMapperCache.set(filePath, cachedPath);
     }
@@ -191,15 +191,15 @@ function successfulTypeScriptInstance(
 
   const appendTsTsxSuffixesIfRequired =
     loaderOptions.appendTsSuffixTo.length > 0 ||
-    loaderOptions.appendTsxSuffixTo.length > 0
+      loaderOptions.appendTsxSuffixTo.length > 0
       ? (filePath: string) =>
-          appendSuffixesIfMatch(
-            {
-              '.ts': loaderOptions.appendTsSuffixTo,
-              '.tsx': loaderOptions.appendTsxSuffixTo,
-            },
-            filePath
-          )
+        appendSuffixesIfMatch(
+          {
+            '.ts': loaderOptions.appendTsSuffixTo,
+            '.tsx': loaderOptions.appendTsxSuffixTo,
+          },
+          filePath
+        )
       : (filePath: string) => filePath;
 
   if (loaderOptions.transpileOnly) {
@@ -239,8 +239,8 @@ function successfulTypeScriptInstance(
   try {
     const filesToLoad = loaderOptions.onlyCompileBundledFiles
       ? configParseResult.fileNames.filter(fileName =>
-          dtsDtsxOrDtsDtsxMapRegex.test(fileName)
-        )
+        dtsDtsxOrDtsDtsxMapRegex.test(fileName)
+      )
       : configParseResult.fileNames;
     filesToLoad.forEach(filePath => {
       normalizedFilePath = path.normalize(filePath);
@@ -359,9 +359,8 @@ export function initializeInstance(
 
     if (typeof customerTransformers !== 'function') {
       throw new Error(
-        `Custom transformers in "${
-          instance.loaderOptions.getCustomTransformers
-        }" should export a function, got ${typeof getCustomTransformers}`
+        `Custom transformers in "${instance.loaderOptions.getCustomTransformers
+        }" should export a function, got ${typeof customerTransformers}`
       );
     }
     getCustomTransformers = customerTransformers;
@@ -371,10 +370,10 @@ export function initializeInstance(
     const program = (instance.program =
       instance.configParseResult.projectReferences !== undefined
         ? instance.compiler.createProgram({
-            rootNames: instance.configParseResult.fileNames,
-            options: instance.configParseResult.options,
-            projectReferences: instance.configParseResult.projectReferences,
-          })
+          rootNames: instance.configParseResult.fileNames,
+          options: instance.configParseResult.options,
+          projectReferences: instance.configParseResult.projectReferences,
+        })
         : instance.compiler.createProgram([], instance.compilerOptions));
 
     instance.transformers = getCustomTransformers(program);
@@ -501,7 +500,13 @@ export function buildSolutionReferences(
       instance.configParseResult.projectReferences!.map(ref => ref.path),
       { verbose: true }
     );
-    solutionBuilder.build();
+
+    const getProjectCustomTransformers = function (project: string) {
+      console.log("getCustomTransformers", project);
+      return instance.transformers;
+    }
+
+    solutionBuilder.build(undefined, undefined, undefined, getProjectCustomTransformers);
     instance.solutionBuilderHost.ensureAllReferenceTimestamps();
     instancesBySolutionBuilderConfigs.set(
       instance.filePathKeyMapper(instance.configFilePath!),
@@ -577,13 +582,13 @@ function getOutputPathWithoutChangingExt(
 ) {
   return outputDir
     ? (instance.compiler as any).resolvePath(
-        outputDir,
-        (instance.compiler as any).getRelativePathFromDirectory(
-          rootDirOfOptions(instance, configFile),
-          inputFileName,
-          ignoreCase
-        )
+      outputDir,
+      (instance.compiler as any).getRelativePathFromDirectory(
+        rootDirOfOptions(instance, configFile),
+        inputFileName,
+        ignoreCase
       )
+    )
     : inputFileName;
 }
 
@@ -609,8 +614,8 @@ function getOutputJSFileName(
       ? '.json'
       : fileExtensionIs(inputFileName, '.tsx') &&
         configFile.options.jsx === instance.compiler.JsxEmit.Preserve
-      ? '.jsx'
-      : '.js'
+        ? '.jsx'
+        : '.js'
   );
   return !isJsonFile ||
     (instance.compiler as any).comparePaths(
