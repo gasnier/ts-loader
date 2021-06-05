@@ -9,13 +9,7 @@ import { getCompiler, getCompilerOptions } from './compilerSetup';
 import { getConfigFile, getConfigParseResult } from './config';
 import { dtsDtsxOrDtsDtsxMapRegex, EOL, tsTsxRegex } from './constants';
 import { getTSInstanceFromCache, setTSInstanceInCache } from './instance-cache';
-import {
-  FilePathKey,
-  LoaderOptions,
-  TSFiles,
-  TSInstance,
-  WebpackLoaderContext,
-} from './interfaces';
+import { FilePathKey, LoaderOptions, TSFiles, TSInstance } from './interfaces';
 import * as logger from './logger';
 import {
   getSolutionErrors,
@@ -45,10 +39,10 @@ const instancesBySolutionBuilderConfigs = new Map<FilePathKey, TSInstance>();
  */
 export function getTypeScriptInstance(
   loaderOptions: LoaderOptions,
-  loader: WebpackLoaderContext
+  loader: webpack.LoaderContext<LoaderOptions>
 ): { instance?: TSInstance; error?: webpack.WebpackError } {
   const existing = getTSInstanceFromCache(
-    loader._compiler,
+    loader._compiler!,
     loaderOptions.instance
   );
   if (existing) {
@@ -119,7 +113,7 @@ function createFilePathKeyMapper(
 
 function successfulTypeScriptInstance(
   loaderOptions: LoaderOptions,
-  loader: WebpackLoaderContext,
+  loader: webpack.LoaderContext<LoaderOptions>,
   log: logger.Logger,
   colors: chalk.Chalk,
   compiler: typeof typescript,
@@ -159,7 +153,7 @@ function successfulTypeScriptInstance(
     }
   }
 
-  const module = loader._module;
+  const module = loader._module!;
   const basePath = loaderOptions.context || path.dirname(configFilePath || '');
   const configParseResult = getConfigParseResult(
     compiler,
@@ -304,7 +298,10 @@ function getExistingSolutionBuilderHost(key: FilePathKey) {
   return undefined;
 }
 
-function addAssetHooks(loader: WebpackLoaderContext, instance: TSInstance) {
+function addAssetHooks(
+  loader: webpack.LoaderContext<LoaderOptions>,
+  instance: TSInstance
+) {
   // makeAfterCompile is a closure.  It returns a function which closes over the variable checkAllFilesForErrors
   // We need to get the function once and then reuse it, otherwise it will be recreated each time
   // and all files will always be checked.
@@ -314,27 +311,29 @@ function addAssetHooks(loader: WebpackLoaderContext, instance: TSInstance) {
   );
 
   const makeAssetsCallback = (compilation: webpack.Compilation) => {
-    compilation.hooks.afterProcessAssets.tap('ts-loader', () =>
-      cachedMakeAfterCompile(compilation, () => {
-        return null;
-      })
+    compilation.hooks.processAssets.tap(
+      {
+        name: 'ts-loader',
+        stage: webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+      },
+      () => {
+        cachedMakeAfterCompile(compilation, () => {
+          return null;
+        });
+      }
     );
   };
 
   // We need to add the hook above for each run.
   // For the first run, we just need to add the hook to loader._compilation
-  makeAssetsCallback(loader._compilation);
+  makeAssetsCallback(loader._compilation!);
 
   // For future calls in watch mode we need to watch for a new compilation and add the hook
-  loader._compiler.hooks.compilation.tap('ts-loader', makeAssetsCallback);
-
-  // It may be better to add assets at the processAssets stage (https://webpack.js.org/api/compilation-hooks/#processassets)
-  // This requires Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL, which does not exist in webpack4
-  // Consider changing this when ts-loader is built using webpack5
+  loader._compiler!.hooks.compilation.tap('ts-loader', makeAssetsCallback);
 }
 
 export function initializeInstance(
-  loader: WebpackLoaderContext,
+  loader: webpack.LoaderContext<LoaderOptions>,
   instance: TSInstance
 ) {
   if (!instance.initialSetupPending) {
@@ -382,13 +381,13 @@ export function initializeInstance(
     // Setup watch run for solution building
     if (instance.solutionBuilderHost) {
       addAssetHooks(loader, instance);
-      loader._compiler.hooks.watchRun.tapAsync(
+      loader._compiler!.hooks.watchRun.tapAsync(
         'ts-loader',
         makeWatchRun(instance, loader)
       );
     }
   } else {
-    if (!loader._compiler.hooks) {
+    if (!loader._compiler!.hooks) {
       throw new Error(
         "You may be using an old version of webpack; please check you're using at least version 4"
       );
@@ -431,7 +430,7 @@ export function initializeInstance(
 
     addAssetHooks(loader, instance);
 
-    loader._compiler.hooks.watchRun.tapAsync(
+    loader._compiler!.hooks.watchRun.tapAsync(
       'ts-loader',
       makeWatchRun(instance, loader)
     );
@@ -454,7 +453,7 @@ function getScriptRegexp(instance: TSInstance) {
 
 export function reportTranspileErrors(
   instance: TSInstance,
-  loader: WebpackLoaderContext
+  loader: webpack.LoaderContext<LoaderOptions>
 ) {
   if (!instance.reportTranspileErrors) {
     return;
@@ -477,13 +476,13 @@ export function reportTranspileErrors(
       loader.context
     );
 
-    [...solutionErrors, ...errors].forEach(error => module.addError(error));
+    [...solutionErrors, ...errors].forEach(error => module!.addError(error));
   }
 }
 
 export function buildSolutionReferences(
   instance: TSInstance,
-  loader: WebpackLoaderContext
+  loader: webpack.LoaderContext<LoaderOptions>
 ) {
   if (!supportsSolutionBuild(instance)) {
     return;
